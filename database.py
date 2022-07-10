@@ -166,7 +166,7 @@ class ModelController:
         connection = DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB)
         cursor = connection.cursor()
         cursor.execute(f'SELECT * FROM {table_name}')
-        return cursor.fetch_all()
+        return cursor.fetchall()
 
     @classmethod
     def _fetch_by_text_field(cls, table_name: str, field_value: str, field_name: str, exact=True, limit=None):
@@ -241,7 +241,7 @@ class ArticleController(ModelController):
 
         :return: Uma lista contendo os registros da tabela, mapeados para objetos `Article`.
         """
-        return ModelController._fetch_all(cls.__TABLE_NAME)
+        return [Article.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
 
     @classmethod
     def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
