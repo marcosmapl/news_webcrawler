@@ -7,7 +7,7 @@ import os
 
 from psycopg2 import extras
 
-from model import Article
+from model import Article, ArticleImage, ArticleTopic, ArticleMedia, ArticleHyperlink, ArticleCategory
 
 
 class DatabaseManager:
@@ -270,3 +270,307 @@ class ArticleController(ModelController):
         """
         return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
 
+
+class ArticleImageController(ModelController):
+    """Classe que implementa as funções de CRUD para objetos `ArticleImage`."""
+    __TABLE_NAME = 'article_image'
+
+    @classmethod
+    def insert_one(cls, element: ArticleImage):
+        """
+        Esta função insere um novo registro na tabela `article_image` com o valores provenientes de um objeto `ArticleImage`.
+
+        :param element: O objeto `ArticleImage` cujos valores deverão ser inseridos.
+        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
+        """
+        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleImage.attr_list())
+
+    @classmethod
+    def insert_batch(cls, elements: List[ArticleImage]):
+        """
+        Esta função insere novos registros na tabela `article_image` com os valores provenientes de uma lista de objetos `ArticleImage`.
+
+        :param elements: A lista com os objetos `ArticleImage` cujos valores deverão ser inseridos como novos registros da tabela.
+        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
+        """
+        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleImage.attr_list())
+
+    @classmethod
+    def fetch_all(cls):
+        """
+        Esta função recupera todos os registros da tabela `article_image` mapeados para uma lista de objetos `ArticleImage`.
+
+        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleImage`.
+        """
+        return [ArticleImage.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
+
+    @classmethod
+    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_image` por meio de uma busca por um parametro textual num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleImage`.
+
+        :param field_value: O valor textual do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleImage`
+        """
+        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+
+    @classmethod
+    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_image` por meio de uma busca por um parametro inteiro num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleImage`.
+
+        :param field_value: O valor inteiro do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleImage`
+        """
+        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+
+
+class ArticleTopicController(ModelController):
+    """Classe que implementa as funções de CRUD para objetos `ArticleTopic`."""
+    __TABLE_NAME = 'article_topic'
+
+    @classmethod
+    def insert_one(cls, element: ArticleTopic):
+        """
+        Esta função insere um novo registro na tabela `article_topic` com o valores provenientes de um objeto `ArticleTopic`.
+
+        :param element: O objeto `ArticleTopic` cujos valores deverão ser inseridos.
+        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
+        """
+        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleTopic.attr_list())
+
+    @classmethod
+    def insert_batch(cls, elements: List[ArticleTopic]):
+        """
+        Esta função insere novos registros na tabela `article_topic` com os valores provenientes de uma lista de objetos `ArticleTopic`.
+
+        :param elements: A lista com os objetos `ArticleTopic` cujos valores deverão ser inseridos como novos registros da tabela.
+        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
+        """
+        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleTopic.attr_list())
+
+    @classmethod
+    def fetch_all(cls):
+        """
+        Esta função recupera todos os registros da tabela `article_topic` mapeados para uma lista de objetos `ArticleTopic`.
+
+        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleTopic`.
+        """
+        return [ArticleTopic.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
+
+    @classmethod
+    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_topic` por meio de uma busca por um parametro textual num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleTopic`.
+
+        :param field_value: O valor textual do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleTopic`
+        """
+        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+
+    @classmethod
+    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_topic` por meio de uma busca por um parametro inteiro num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleTopic`.
+
+        :param field_value: O valor inteiro do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleTopic`
+        """
+        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+
+
+class ArticleMediaController(ModelController):
+    """Classe que implementa as funções de CRUD para objetos `ArticleMedia`."""
+    __TABLE_NAME = 'article_media'
+
+    @classmethod
+    def insert_one(cls, element: ArticleMedia):
+        """
+        Esta função insere um novo registro na tabela `article_media` com o valores provenientes de um objeto `ArticleMedia`.
+
+        :param element: O objeto `ArticleMedia` cujos valores deverão ser inseridos.
+        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
+        """
+        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleMedia.attr_list())
+
+    @classmethod
+    def insert_batch(cls, elements: List[ArticleMedia]):
+        """
+        Esta função insere novos registros na tabela `article_media` com os valores provenientes de uma lista de objetos `ArticleMedia`.
+
+        :param elements: A lista com os objetos `ArticleMedia` cujos valores deverão ser inseridos como novos registros da tabela.
+        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
+        """
+        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleMedia.attr_list())
+
+    @classmethod
+    def fetch_all(cls):
+        """
+        Esta função recupera todos os registros da tabela `article_media` mapeados para uma lista de objetos `ArticleMedia`.
+
+        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleMedia`.
+        """
+        return [ArticleMedia.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
+
+    @classmethod
+    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_media` por meio de uma busca por um parametro textual num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleMedia`.
+
+        :param field_value: O valor textual do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleMedia`
+        """
+        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+
+    @classmethod
+    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_media` por meio de uma busca por um parametro inteiro num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleMedia`.
+
+        :param field_value: O valor inteiro do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleMedia`
+        """
+        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+
+
+class ArticleHyperlinkController(ModelController):
+    """Classe que implementa as funções de CRUD para objetos `ArticleHyperlink`."""
+    __TABLE_NAME = 'article_hyperlink'
+
+    @classmethod
+    def insert_one(cls, element: ArticleMedia):
+        """
+        Esta função insere um novo registro na tabela `article_hyperlink` com o valores provenientes de um objeto `ArticleHyperlink`.
+
+        :param element: O objeto `ArticleHyperlink` cujos valores deverão ser inseridos.
+        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
+        """
+        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleHyperlink.attr_list())
+
+    @classmethod
+    def insert_batch(cls, elements: List[ArticleHyperlink]):
+        """
+        Esta função insere novos registros na tabela `article_hyperlink` com os valores provenientes de uma lista de objetos `ArticleHyperlink`.
+
+        :param elements: A lista com os objetos `ArticleHyperlink` cujos valores deverão ser inseridos como novos registros da tabela.
+        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
+        """
+        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleHyperlink.attr_list())
+
+    @classmethod
+    def fetch_all(cls):
+        """
+        Esta função recupera todos os registros da tabela `article_hyperlink` mapeados para uma lista de objetos `ArticleHyperlink`.
+
+        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleHyperlink`.
+        """
+        return [ArticleHyperlink.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
+
+    @classmethod
+    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_hyperlink` por meio de uma busca por um parametro textual num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleHyperlink`.
+
+        :param field_value: O valor textual do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleHyperlink`
+        """
+        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+
+    @classmethod
+    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_hyperlink` por meio de uma busca por um parametro inteiro num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleHyperlink`.
+
+        :param field_value: O valor inteiro do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleHyperlink`
+        """
+        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+
+
+class ArticleCategoryController(ModelController):
+    """Classe que implementa as funções de CRUD para objetos `ArticleCategory`."""
+    __TABLE_NAME = 'article_category'
+
+    @classmethod
+    def insert_one(cls, element: ArticleCategory):
+        """
+        Esta função insere um novo registro na tabela `article_category` com o valores provenientes de um objeto `ArticleCategory`.
+
+        :param element: O objeto `ArticleImage` cujos valores deverão ser inseridos.
+        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
+        """
+        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleCategory.attr_list())
+
+    @classmethod
+    def insert_batch(cls, elements: List[ArticleCategory]):
+        """
+        Esta função insere novos registros na tabela `article_category` com os valores provenientes de uma lista de objetos `ArticleCategory`.
+
+        :param elements: A lista com os objetos `ArticleCategory` cujos valores deverão ser inseridos como novos registros da tabela.
+        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
+        """
+        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleCategory.attr_list())
+
+    @classmethod
+    def fetch_all(cls):
+        """
+        Esta função recupera todos os registros da tabela `article_category` mapeados para uma lista de objetos `ArticleCategory`.
+
+        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleCategory`.
+        """
+        return [ArticleCategory.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
+
+    @classmethod
+    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_category` por meio de uma busca por um parametro textual num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleCategory`.
+
+        :param field_value: O valor textual do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleCategory`
+        """
+        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+
+    @classmethod
+    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
+        """
+        Esta função recupera uma seleção de registros da tabela `article_category` por meio de uma busca por um parametro inteiro num dos campos da tabela.
+        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleCategory`.
+
+        :param field_value: O valor inteiro do campos no registros desejados.
+        :param field_name: O nome do campo a ser utilizado na busca.
+        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
+        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleCategory`
+        """
+        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)

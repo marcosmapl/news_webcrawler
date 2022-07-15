@@ -1,33 +1,48 @@
 # -*- coding: utf-8 -*-
-from crawler import AcriticaCrawler
-from database import DatabaseManager, ArticleController
-from model import AcriticaParser
+from typing import List
 
+from selenium import webdriver
 
-search_words = [
-    'HAITIANO',
-    'HAITIANOS'
-    # 'HAITIANA',
-    # 'HAITIANAS',
-    # 'HAITI'
-    # 'VENEZUELANO',
-    # 'VENEZUELANOS',
-    # 'VENEZUELANA',
-    # 'VENEZUELANAS'
-    # 'VENEZUELA'
+from scraper import PortalAmazoniaScraper
+from database import DatabaseManager, ArticleController, ArticleImageController, ArticleTopicController, ArticleMediaController, ArticleHyperlinkController, \
+    ArticleCategoryController
+from model import ModelEntity
+
+scrapers = [
+    # AcriticaCrawler,
+    PortalAmazoniaScraper
 ]
+
+
+def save_elements(controller, elements: List[ModelEntity]):
+    try:
+        controller.insert_batch(elements)
+    except Exception as erro:
+        DatabaseManager.close_connection()
+        print(erro)
+
+
 if __name__ == '__main__':
     DatabaseManager.create_database(DatabaseManager.POSTGRESQL_DB)
+    for scraper in scrapers:
+        scraper.create_output_dirs()
 
-    db_links = [x.article_url for x in ArticleController.fetch_all()]
-    news_links = AcriticaCrawler.find_news(search_words)
-    articles = AcriticaCrawler.get_articles([x for x in news_links if str(x) not in db_links])
+    search_terms = input('DIGITE UM OU MAIS TERMOS DE BUSCA SEPARADOS POR VÍRGULA: ').split(',')
+    browser = webdriver.Chrome()
+    browser.maximize_window()
 
-    for art in articles:
-        print(art)
-        print('\n')
+    for scraper in scrapers:
+        article_links = scraper.get_document_links(search_terms, browser)
+        for link in article_links:
+            article, topics, images, medias, hyperlinks, categories = scraper.get_document(link, browser)
 
-    try:
-        ArticleController.insert_batch(articles)
-    except Exception as err:
-        print(err)
+            save_elements(ArticleController, [article])
+            save_elements(ArticleTopicController, topics)
+            save_elements(ArticleImageController, images)
+            save_elements(ArticleMediaController, medias)
+            save_elements(ArticleHyperlinkController, hyperlinks)
+            save_elements(ArticleCategoryController, categories)
+
+    browser.get(r'https://www.google.com.br')
+    browser.close()
+    DatabaseManager.close_connection()
