@@ -22,11 +22,10 @@ class ModelEntity:
 
 class Article(ModelEntity):
 
-    def __init__(self, aid: str, site_name: str, pub_date: str, editorial: str, author: str, title: str, subtitle: str, aurl: str, atype: str = None, hat: str = None, mod_date: str = None):
+    def __init__(self, aid: str, site_name: str, pub_date: str, author: str, title: str, subtitle: str, aurl: str, atype: str = None, hat: str = None, mod_date: str = None):
         self.article_id = aid
         self.site_name = site_name
         self.published = pub_date
-        self.editorial = editorial
         self.author = author
         self.title = title
         self.subtitle = subtitle
@@ -51,8 +50,7 @@ class Article(ModelEntity):
             values[6],
             values[7],
             values[8],
-            values[9],
-            values[10]
+            values[9]
         )
 
     @staticmethod
@@ -239,7 +237,6 @@ class ArticleParser:
     ARTICLE_ID_PROPERTY = 'article_id'
     ARTICLE_SITENAME_PROPERTY = 'og:site_name'
     ARTICLE_PUBLISHED_PROPERTY = 'article:published_time'
-    ARTICLE_EDITORIAL_PROPERTY = 'editorial'
     ARTICLE_AUTHOR_PROPERTY = 'article:author'
     ARTICLE_TITLE_PROPERTY = 'og:title'
     ARTICLE_DESCRIPTION_PROPERTY = 'og:description'
@@ -254,7 +251,6 @@ class ArticleParser:
             article_metadata.get(ArticleParser.ARTICLE_ID_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_SITENAME_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_PUBLISHED_PROPERTY, None),
-            article_metadata.get(ArticleParser.ARTICLE_EDITORIAL_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_AUTHOR_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_TITLE_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_DESCRIPTION_PROPERTY, None),

@@ -3,23 +3,24 @@ from typing import List
 
 from selenium import webdriver
 
-from scraper import PortalAmazoniaScraper
+from scraper import PortalAmazoniaScraper, AcriticaScraper
 from database import DatabaseManager, ArticleController, ArticleImageController, ArticleTopicController, ArticleMediaController, ArticleHyperlinkController, \
     ArticleCategoryController
 from model import ModelEntity
 
 scrapers = [
-    # AcriticaCrawler,
+    AcriticaScraper,
     PortalAmazoniaScraper
 ]
 
 
 def save_elements(controller, elements: List[ModelEntity]):
-    try:
-        controller.insert_batch(elements)
-    except Exception as erro:
-        DatabaseManager.close_connection()
-        print(erro)
+    for element in elements:
+        try:
+            controller.insert_one(element)
+        except Exception as erro:
+            DatabaseManager.close_connection()
+            print(erro)
 
 
 if __name__ == '__main__':
@@ -43,6 +44,6 @@ if __name__ == '__main__':
             save_elements(ArticleHyperlinkController, hyperlinks)
             save_elements(ArticleCategoryController, categories)
 
+    DatabaseManager.close_connection()
     browser.get(r'https://www.google.com.br')
     browser.close()
-    DatabaseManager.close_connection()

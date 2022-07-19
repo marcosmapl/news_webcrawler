@@ -21,18 +21,84 @@ class WebScraper:
         pass
 
     @staticmethod
+    def get_article_metadata(soup):
+        return {meta['property']: str(meta['content']).upper().strip() for meta in soup.findAll('meta', {'property': True})}
+
+    @staticmethod
+    def get_article_topics(soup, article_id):
+        topics = []
+        if soup:
+            for order, link in enumerate(soup, start=1):
+                topics.append(
+                    ArticleTopic(
+                        article_id,
+                        link.text.strip().upper(),
+                        link['href'],
+                        order
+                    )
+                )
+        return topics
+
+    @staticmethod
+    def get_article_images(soup, article_id):
+        images = []
+        if soup:
+            for order, img in enumerate(soup, start=1):
+                img_src = img['src']
+                img_ext = re.search("\.JPG|\.JPEG|\.GIF|\.PNG|\.EPS|.GIF|.TIFF|.RAW", img_src.upper())
+                images.append(
+                    ArticleImage(
+                        article_id,
+                        img['src'],
+                        order,
+                        int(img['height']) if img.has_attr('height') else None,
+                        int(img['width']) if img.has_attr('width') else None,
+                        str(img_ext.group())
+                    )
+                )
+        return images
+
+    @staticmethod
+    def get_article_hyperlinks(soup, article_id: str):
+        hyperlinks = []
+        if soup:
+            for order, link in enumerate(soup, start=1):
+                hyperlinks.append(
+                    ArticleHyperlink(
+                        article_id,
+                        order,
+                        link.text.strip().upper(),
+                        link['href']
+                    )
+                )
+        return hyperlinks
+
+    @staticmethod
+    def get_article_categories(soup, article_id: str):
+        categories = []
+        if soup:
+            for order, link in enumerate(soup, start=1):
+                categories.append(
+                    ArticleCategory(
+                        article_id,
+                        link.text.strip().upper(),
+                        link['href']
+                    )
+                )
+        return categories
+
+    @staticmethod
     def get_document_medias(soup, article_id: str):
         medias = []
         for media_tag in ['video', 'audio']:
-            for order, tag in enumerate(soup.find_all(media_tag, {'src': True}), start=1):
+            for order, tag in enumerate(soup.findChildren(media_tag, {'src': True}), start=1):
                 medias.append(ArticleMedia(
                     article_id,
                     order,
                     tag['type'],
                     tag['src']
                 ))
-
-        for order, video_embed_div in enumerate(soup.find_all('div', {'class': 'video-embed-wrapper'}), start=1):
+        for order, video_embed_div in enumerate(soup.findChildren('div', {'class': 'video-embed-wrapper'}), start=1):
             video_iframe = video_embed_div.findChild('iframe', {'src': True})
             medias.append(ArticleMedia(
                 article_id,
@@ -44,10 +110,6 @@ class WebScraper:
         return medias
 
     @staticmethod
-    def get_base_url():
-        pass
-
-    @staticmethod
     def tag_visible(element):
         if element.parent.name in [
             'style', 'script', 'head', 'title', 'meta', '[document]'
@@ -57,54 +119,98 @@ class WebScraper:
             return False
         return True
 
-    @staticmethod
-    def create_output_dirs():
-        pass
+    @classmethod
+    def save_html(cls, article_id: str, html: str):
+        WebScraper.__save_document_to_file(
+            os.path.join(
+                os.getcwd(),
+                cls.get_scrapper_name(),
+                'html',
+                f"{article_id}.html"
+            ),
+            html
+        )
+
+    @classmethod
+    def save_txt(cls, article_id: str, txt: str):
+        WebScraper.__save_document_to_file(
+            os.path.join(
+                os.getcwd(),
+                cls.get_scrapper_name(),
+                'txt',
+                f"{article_id}.txt"
+            ),
+            txt
+        )
 
     @staticmethod
-    def save_document_to_file(file_path: str, text: str):
+    def __save_document_to_file(file_path: str, text: str):
         with open(file_path, 'w', encoding='utf-8') as arq:
             arq.write(text)
+
+    @classmethod
+    def create_output_dirs(cls):
+        if not os.path.isdir(os.path.join(os.getcwd(), cls.get_scrapper_name(), 'html')):
+            os.makedirs(os.path.join(os.getcwd(), cls.get_scrapper_name(), 'html'))
+        if not os.path.isdir(os.path.join(os.getcwd(), cls.get_scrapper_name(), 'txt')):
+            os.makedirs(os.path.join(os.getcwd(), cls.get_scrapper_name(), 'txt'))
+
+    @staticmethod
+    def get_scrapper_name():
+        return 'scraper'
+
+    @staticmethod
+    def get_base_url():
+        pass
 
 
 class AcriticaScraper(WebScraper):
 
     DEFAULT_LOAD_WAIT_TIME = 3
-    __SCRAPER_HTML_FOLDER = 'acritica/html'
-    __SCRAPER_TXT_FOLDER = 'acritica/txt'
 
     @staticmethod
     def get_base_url():
         return r'https://www.acritica.com'
 
     @staticmethod
-    def create_output_dirs():
-        if not os.path.isdir(os.path.join(os.getcwd(), 'acritica', 'html')):
-            os.mkdir(os.path.join(os.getcwd(), 'acritica', 'html'))
-        if not os.path.isdir(os.path.join(os.getcwd(), 'acritica', 'txt')):
-            os.mkdir(os.path.join(os.getcwd(), 'acritica', 'txt'))
+    def get_scrapper_name():
+        return 'acritica'
+
+    @staticmethod
+    def get_article_metadata(soup):
+        article_metadata = WebScraper.get_article_metadata(soup)
+        article_metadata[ArticleParser.ARTICLE_ID_PROPERTY] = 'AC' + article_metadata['og:url'][article_metadata['og:url'].rindex('.') + 1:]
+        hat_span = soup.find('span', {'class': 'ceiOww'})
+        article_metadata[ArticleParser.ARTICLE_HAT_PROPERTY] = hat_span.text.upper().strip() if hat_span else None
+
+        div_content = soup.find('div', {'class': 'gzQsJ'})
+        text_list = []
+        contents = div_content.findChildren()
+        for content in contents:
+            if content.text and content.text not in text_list:
+                text_list.append(content.text)
+        article_metadata['content'] = '\n'.join([str(x).strip().upper() for x in text_list])
+
+        return article_metadata
 
     @staticmethod
     def get_document_links(search_term: List[str], browser):
         article_links = set()
         for term in search_term:
-            browser.get(f'{AcriticaScraper.get_base_url()}/?term={term}')
-            sleep(AcriticaScraper.DEFAULT_LOAD_WAIT_TIME)
-            soup = BeautifulSoup(browser.page_source, 'html.parser')
-            div = soup.find('div', {'class': 'ecqOwd'})  # Block__Component-sc-1uj1scg-0 ekRQuY
-            search_data = re.search(f'RESULTADO DA PESQUISAVocê pesquisou por {term}Foram encontrados (\d+) resultadosEsta é a página (\d+) de (\d+)', div.text).groups()
-            # search_results = int(search_data[0])
-            search_pages = int(search_data[2])
-
-            for i in range(1, search_pages+1):
+            i = 1
+            while True:
                 browser.get(f'{AcriticaScraper.get_base_url()}/page/{i}/{term}')
                 sleep(AcriticaScraper.DEFAULT_LOAD_WAIT_TIME)
                 soup = BeautifulSoup(browser.page_source, 'html.parser')
-                links = soup.findAll('a', {'class': 'dDfqGJ', 'href': True})
-                for link in links:
-                    article_url = str(link['href'])
-                    article_links.add(article_url)
-                    print(f"MATERIA ADICIONADA A LISTA DE DOWNLOAD: {article_url}\nTOTAL {len(article_links)}")
+                div_article_list = soup.find('div', {'class': 'bwIhbp'})
+                links = div_article_list.findChildren('a', {'class': 'dDfqGJ', 'href': True})
+                if links:
+                    i += 1
+                    for link in links:
+                        article_links.add(link['href'])
+                        print(f"MATERIA ADICIONADA A LISTA DE DOWNLOAD: {link['href']}\nTOTAL {len(article_links)}")
+                else:
+                    break
         return article_links
 
     @staticmethod
@@ -114,49 +220,40 @@ class AcriticaScraper(WebScraper):
         browser.get(document_url)
         sleep(AcriticaScraper.DEFAULT_LOAD_WAIT_TIME)
         soup = BeautifulSoup(browser.page_source, 'html.parser')
-        try:
-            article_data = {meta['property']: str(meta['content']).upper().strip() for meta in soup.findAll('meta', {'property': True})}
-            article_data[ArticleParser.ARTICLE_ID_PROPERTY] = 'AC' + article_data['og:url'][article_data['og:url'].rindex('.')+1:]
-            hat_span = soup.find('span', {'class': 'ceiOww'})
-            article_data[ArticleParser.ARTICLE_HAT_PROPERTY] = hat_span.text.upper().strip() if hat_span else None
-            url_parts = document_url.split('/')
-            article_data[ArticleParser.ARTICLE_EDITORIAL_PROPERTY] = str(url_parts[1]).strip().upper() if len(url_parts) > 2 else None
-            tags = soup.findAll('span', {'class': 'gCiqnR'})
 
-            if tags:
-                article_data['tags'] = '#'.join([tag.text.strip().upper() for tag in tags])
-            else:
-                article_data['tags'] = None
+        article_metadata = AcriticaScraper.get_article_metadata(soup)
+        article = ArticleParser.parse_article(article_metadata)
 
-            article_content = []
-            for div in soup.findAll('div', {'class': 'bVxWXz'}):
-                for element in div.findChildren():
-                    if AcriticaScraper.tag_visible(element) and not element.findChild() and element.text:
-                        article_content.append(element.text)
+        div_content = soup.find('div', {'class': 'gzQsJ'})
 
-            AcriticaScraper.save_document_to_file(
-                os.path.join(
-                    os.getcwd(),
-                    'acritica',
-                    'html',
-                    f"{article_data['article_id']}.html"
-                ),
-                soup.prettify()
-            )
+        topics = AcriticaScraper.get_article_topics(div_content.find('a', {'class': 'knlcwJ', 'href': True}), article.article_id)
+        images = AcriticaScraper.get_article_images(div_content.findChildren('img', {'src': True}), article.article_id)
+        hyperlinks = AcriticaScraper.get_article_hyperlinks(div_content.findChildren('a', {'href': True}), article.article_id)
+        categories = AcriticaScraper.get_article_categories(soup, article.article_id)
+        medias = AcriticaScraper.get_document_medias(div_content, article.article_id)
 
-            AcriticaScraper.save_document_to_file(
-                os.path.join(
-                    os.getcwd(),
-                    'acritica',
-                    'txt',
-                    f"{article_data['article_id']}.txt"
-                ),
-                ''.join(article_content).upper()
-            )
+        AcriticaScraper.save_html(article.article_id, soup.prettify())
+        AcriticaScraper.save_txt(article.article_id, re.sub(r"\s+", " ", ''.join(article_metadata['content']).upper()))
 
-            return ArticleParser.parse_article(article_data)
-        except Exception as err:
-            print(str(err))
+        return article, topics, images, medias, hyperlinks, categories
+
+    @staticmethod
+    def get_article_categories(soup, article_id):
+        meta_url = soup.find('meta', {'property': 'og:url', 'content': True})
+        document_url = meta_url['content']
+        document_url = document_url.replace(AcriticaScraper.get_base_url(), '')
+        categories = []
+        cat_paths = document_url.split('/')
+        if cat_paths and len(cat_paths) > 2:
+            for order, path in enumerate(cat_paths[1:-1], start=1):
+                categories.append(
+                    ArticleCategory(
+                        article_id,
+                        path.strip().upper(),
+                        f'/{path}'
+                    )
+                )
+        return categories
 
 
 class PortalAmazoniaScraper(WebScraper):
@@ -164,8 +261,8 @@ class PortalAmazoniaScraper(WebScraper):
     DEFAULT_LOAD_WAIT_TIME = 3
 
     @staticmethod
-    def _get_article_metadata(soup):
-        article_metadata = {meta['property']: str(meta['content']).strip().upper() for meta in soup.findAll('meta', {'property': True})}
+    def get_article_metadata(soup):
+        article_metadata = WebScraper.get_article_metadata(soup)
 
         div_id = soup.find('div', {'data-id': True})
         article_metadata[ArticleParser.ARTICLE_ID_PROPERTY] = 'PAM' + div_id['data-id']
@@ -180,80 +277,12 @@ class PortalAmazoniaScraper(WebScraper):
         return article_metadata
 
     @staticmethod
-    def _get_article_topics(soup, article_id):
-        topics = []
-        div_topics = soup.find('div', {'class': 'cell-tags'})
-        if div_topics:
-            for order, topic in enumerate(div_topics.findChildren('a', {'href': True}), start=1):
-                topics.append(
-                    ArticleTopic(
-                        article_id,
-                        topic.text.strip().upper(),
-                        topic['href'],
-                        order
-                    )
-                )
-        return topics
-
-    @staticmethod
-    def _get_article_images(soup, article_id: str):
-        images = []
-        imgs = soup.findChildren('img', {'src': True})
-        if imgs:
-            for order, img in enumerate(imgs, start=1):
-                images.append(
-                    ArticleImage(
-                        article_id,
-                        img['src'],
-                        order,
-                        int(img['height']) if img.has_attr('height') else None,
-                        int(img['width']) if img.has_attr('width') else None,
-                        os.path.splitext(img['src'])[-1].strip().upper())
-                )
-        return images
-
-    @staticmethod
-    def _get_article_hyperlinks(soup, article_id: str):
-        hyperlinks = []
-        a_links = soup.findChildren('a', {'href': True})
-        if a_links:
-            for order, link in enumerate(a_links, start=1):
-                hyperlinks.append(
-                    ArticleHyperlink(
-                        article_id,
-                        order,
-                        link.text.strip().upper(),
-                        link['href']
-                    )
-                )
-        return hyperlinks
-
-    @staticmethod
-    def _get_article_categories(soup, article_id: str):
-        categories = []
-        div_categories = soup.findChild('div', {'class': 'eb-meta-category'})
-        a_categories = div_categories.findChildren('a', {'href': True})
-        if a_categories:
-            for order, link in enumerate(a_categories, start=1):
-                categories.append(
-                    ArticleCategory(
-                        article_id,
-                        link.text.strip().upper(),
-                        link['href']
-                    )
-                )
-        return categories
-
-    @staticmethod
     def get_base_url():
         return r'https://portalamazonia.com'
 
     @staticmethod
-    def create_output_dirs():
-        if not os.path.isdir(os.path.join(os.getcwd(), 'portal_amazonia', 'html')):
-            os.makedirs(os.path.join(os.getcwd(), 'portal_amazonia', 'html'))
-        if not os.path.isdir(os.path.join(os.getcwd(), 'portal_amazonia', 'txt')):
-            os.makedirs(os.path.join(os.getcwd(), 'portal_amazonia', 'txt'))
+    def get_scrapper_name():
+        return 'portal_amazonia'
 
     @staticmethod
     def get_document_links(search_term: List[str], browser):
@@ -286,38 +315,21 @@ class PortalAmazoniaScraper(WebScraper):
         browser.get(document_url)
         sleep(AcriticaScraper.DEFAULT_LOAD_WAIT_TIME)
         soup = BeautifulSoup(browser.page_source, 'html.parser')
-        try:
-            article_metadata = PortalAmazoniaScraper._get_article_metadata(soup)
-            article = ArticleParser.parse_article(article_metadata)
+        article_metadata = PortalAmazoniaScraper.get_article_metadata(soup)
+        article = ArticleParser.parse_article(article_metadata)
 
-            div_content = soup.find('div', {'id': True, 'class': 'eb-entry', 'data-id': True, 'data-uid': True})
+        div_content = soup.find('div', {'id': True, 'class': 'eb-entry', 'data-id': True, 'data-uid': True})
 
-            topics = PortalAmazoniaScraper._get_article_topics(div_content, article.article_id)
-            images = PortalAmazoniaScraper._get_article_images(div_content, article.article_id)
-            medias = PortalAmazoniaScraper.get_document_medias(div_content, article.article_id)
-            hyperlinks = PortalAmazoniaScraper._get_article_hyperlinks(div_content, article.article_id)
-            categories = PortalAmazoniaScraper._get_article_categories(div_content, article.article_id)
+        cell_tags = div_content.find('div', {'class': 'cell-tags'})
+        topics = PortalAmazoniaScraper.get_article_topics(cell_tags.findChildren('a', {'href': True}) if cell_tags else None, article.article_id)
+        images = PortalAmazoniaScraper.get_article_images(div_content.findChildren('img', {'src': True}), article.article_id)
+        hyperlinks = PortalAmazoniaScraper.get_article_hyperlinks(div_content.findChildren('a', {'href': True}), article.article_id)
+        div_categories = soup.findChild('div', {'class': 'eb-meta-category'})
+        categories = PortalAmazoniaScraper.get_article_categories(div_categories.findChildren('a', {'href': True}), article.article_id)
+        medias = PortalAmazoniaScraper.get_document_medias(div_content, article.article_id)
 
-            AcriticaScraper.save_document_to_file(
-                os.path.join(
-                    os.getcwd(),
-                    'portal_amazonia',
-                    'html',
-                    f"{article.article_id}.html"
-                ),
-                soup.prettify()
-            )
+        PortalAmazoniaScraper.save_html(article.article_id, soup.prettify())
+        PortalAmazoniaScraper.save_txt(article.article_id, re.sub(r"\s+", " ", ''.join(article_metadata['content']).upper()))
 
-            AcriticaScraper.save_document_to_file(
-                os.path.join(
-                    os.getcwd(),
-                    'portal_amazonia',
-                    'txt',
-                    f"{article.article_id}.txt"
-                ),
-                re.sub(r"\s+", " ", ''.join(article_metadata['content']).upper())
-            )
+        return article, topics, images, medias, hyperlinks, categories
 
-            return article, topics, images, medias, hyperlinks, categories
-        except Exception as err:
-            print(str(err))
