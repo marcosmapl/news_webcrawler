@@ -22,8 +22,8 @@ class DatabaseManager:
 
     """
 
-    POSTGRESQL_DB = 'postgresql'
-    DATABASE_NAME = 'news'
+    POSTGRESQL_DB = 'postgres'
+    DATABASE_NAME = 'news_scraper'
     __db_config_filename = 'database.ini' # nome do arquivo de configurações da conexão com o sgbd
     __connection = None # objeto singleton de conexão com o sgbd
 
@@ -91,13 +91,16 @@ class DatabaseManager:
         Args:
             sgbd_name (str): Nome do SGDB a ser utilizado (POSTGRESQL_DB | MYSQL_DB).
         """
-        # db_params = DatabaseManager.__get_connection_params(sgbd_name)
-        # db_params['database'] = 'postgres'
-        # conn = psycopg2.connect(db_params)
-        # conn.autocommit = True
-        # cursor = conn.cursor()
-        # cursor.execute(f"CREATE DATABASE {sgbd_name}")
-        # conn.close()
+        db_params = DatabaseManager.__get_connection_params(sgbd_name)
+        db_params['database'] = sgbd_name
+        conn = psycopg2.connect(**db_params)
+        conn.autocommit = True
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT 1 FROM pg_catalog.pg_database WHERE datname = '{DatabaseManager.DATABASE_NAME}'")
+        exists = cursor.fetchone()
+        if not exists:
+            cursor.execute(f"CREATE DATABASE {DatabaseManager.DATABASE_NAME}")
+        conn.close()
         # lê e executa o script de criação das tabelas do banco de dados
         with open('create_tables.sql', 'r') as db_file:
             sql = ''.join(db_file.readlines())

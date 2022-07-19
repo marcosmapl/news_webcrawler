@@ -9,8 +9,8 @@ from database import DatabaseManager, ArticleController, ArticleImageController,
 from model import ModelEntity
 
 scrapers = [
-    AcriticaScraper,
-    PortalAmazoniaScraper
+    # AcriticaScraper,
+    # PortalAmazoniaScraper
 ]
 
 
@@ -47,3 +47,4 @@ if __name__ == '__main__':
     DatabaseManager.close_connection()
     browser.get(r'https://www.google.com.br')
     browser.close()
+    browser.quit()
