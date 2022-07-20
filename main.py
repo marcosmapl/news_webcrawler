@@ -1,50 +1,33 @@
 # -*- coding: utf-8 -*-
-from typing import List
+from datetime import datetime
 
-from selenium import webdriver
-
+from database import DatabaseManager
+from logs import Logger
 from scraper import PortalAmazoniaScraper, AcriticaScraper
-from database import DatabaseManager, ArticleController, ArticleImageController, ArticleTopicController, ArticleMediaController, ArticleHyperlinkController, \
-    ArticleCategoryController
-from model import ModelEntity
 
 scrapers = [
-    # AcriticaScraper,
-    # PortalAmazoniaScraper
+    AcriticaScraper('acritica', 3),
+    PortalAmazoniaScraper('portal_amazonia', 3)
 ]
 
 
-def save_elements(controller, elements: List[ModelEntity]):
-    for element in elements:
-        try:
-            controller.insert_one(element)
-        except Exception as erro:
-            DatabaseManager.close_connection()
-            print(erro)
-
-
 if __name__ == '__main__':
+    start_time = datetime.now()
+    Logger.configure()
+    Logger.info(f"COLETA INICIADA EM {start_time}")
+
+    Logger.info(f"CRIANDO A BASE DE DADOS")
     DatabaseManager.create_database(DatabaseManager.POSTGRESQL_DB)
-    for scraper in scrapers:
-        scraper.create_output_dirs()
 
-    search_terms = input('DIGITE UM OU MAIS TERMOS DE BUSCA SEPARADOS POR VÍRGULA: ').split(',')
-    browser = webdriver.Chrome()
-    browser.maximize_window()
+    search_terms = input('DIGITE UM OU MAIS TERMOS DE BUSCA SEPARADOS POR VIRGULA: ').split(',')
 
     for scraper in scrapers:
-        article_links = scraper.get_document_links(search_terms, browser)
-        for link in article_links:
-            article, topics, images, medias, hyperlinks, categories = scraper.get_document(link, browser)
+        Logger.info(f"INICIANDO COLETA COM O SCRAPER: {scraper.get_scrapper_name()}")
+        scraper.start(search_terms)
 
-            save_elements(ArticleController, [article])
-            save_elements(ArticleTopicController, topics)
-            save_elements(ArticleImageController, images)
-            save_elements(ArticleMediaController, medias)
-            save_elements(ArticleHyperlinkController, hyperlinks)
-            save_elements(ArticleCategoryController, categories)
-
+    Logger.info(f"ENCERRANDO CONEXAO COM A BASE DE DADOS")
     DatabaseManager.close_connection()
-    browser.get(r'https://www.google.com.br')
-    browser.close()
-    browser.quit()
+
+    elapsed_time = datetime.now() - start_time
+    Logger.info(f'TIME ELAPSED: {elapsed_time}')
+    Logger.info('COLETA ENCERRADA!')

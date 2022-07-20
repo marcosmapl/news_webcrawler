@@ -22,8 +22,9 @@ class ModelEntity:
 
 class Article(ModelEntity):
 
-    def __init__(self, aid: str, site_name: str, pub_date: str, author: str, title: str, subtitle: str, aurl: str, atype: str = None, hat: str = None, mod_date: str = None):
+    def __init__(self, aid: int, code: str, site_name: str, pub_date: str, author: str, title: str, subtitle: str, aurl: str, atype: str = None, hat: str = None, mod_date: str = None):
         self.article_id = aid
+        self.article_code = code
         self.site_name = site_name
         self.published = pub_date
         self.author = author
@@ -50,50 +51,14 @@ class Article(ModelEntity):
             values[6],
             values[7],
             values[8],
-            values[9]
+            values[9],
+            values[10]
         )
 
     @staticmethod
     def attr_list():
         """Retorna uma lista com os nomes dos atributos (campos) do objeto `Article``."""
-        return list(Article('', '', '', '', '', '', '', '').__dict__)[:]
-
-    def __str__(self):
-        list_str = [f'{self.__class__.__name__}']
-        for attr in self.attr_list():
-            list_str.append(f'{attr}: {getattr(self, attr)}')
-        return '\n'.join(list_str)
-
-
-class ArticleImage(ModelEntity):
-
-    def __init__(self, aid: str, src: str, order: int, height: int, width: int, img_type: str):
-        self.article_id = aid
-        self.img_src = src
-        self.img_order = order
-        self.img_height = height
-        self.img_width = width
-        self.img_type = img_type
-
-    def to_tuple(self):
-        """Retorna o objeto `ArticleImage` numa tupla."""
-        return tuple(getattr(self, attr) for attr in self.attr_list())
-
-    @classmethod
-    def from_tuple(cls, values: Tuple):
-        return ArticleImage(
-            values[0],
-            values[1],
-            values[2],
-            values[3],
-            values[4],
-            values[5]
-        )
-
-    @staticmethod
-    def attr_list():
-        """Retorna uma lista com os nomes dos atributos (campos) do objeto `ArticleImage``."""
-        return list(ArticleImage('', '', -1, -1, -1, '').__dict__)[:]
+        return list(Article(-1, '', '', '', '', '', '', '', '').__dict__)[:]
 
     def __str__(self):
         list_str = [f'{self.__class__.__name__}']
@@ -104,7 +69,8 @@ class ArticleImage(ModelEntity):
 
 class ArticleTopic(ModelEntity):
 
-    def __init__(self, aid: str, desc: str, url: str, order: int):
+    def __init__(self, tid: int, aid: int, desc: str, url: str, order: int):
+        self.topic_id = tid
         self.article_id = aid
         self.topic_description = desc
         self.topic_url = url
@@ -120,13 +86,14 @@ class ArticleTopic(ModelEntity):
             values[0],
             values[1],
             values[2],
-            values[3]
+            values[3],
+            values[4]
         )
 
     @staticmethod
     def attr_list():
         """Retorna uma lista com os nomes dos atributos (campos) do objeto `ArticleTopic`."""
-        return list(ArticleTopic('', '', '', -1).__dict__)[:]
+        return list(ArticleTopic(-1, -1, '', '', -1).__dict__)[:]
 
     def __str__(self):
         list_str = [f'{self.__class__.__name__}']
@@ -137,7 +104,8 @@ class ArticleTopic(ModelEntity):
 
 class ArticleMedia(ModelEntity):
 
-    def __init__(self, aid: str, order: int, media_type: str, source: str):
+    def __init__(self, mid: int, aid: int, order: int, media_type: str, source: str):
+        self.media_id = mid
         self.article_id = aid
         self.media_order = order
         self.media_type = media_type
@@ -153,13 +121,14 @@ class ArticleMedia(ModelEntity):
             values[0],
             values[1],
             values[2],
-            values[3]
+            values[3],
+            values[4]
         )
 
     @staticmethod
     def attr_list():
         """Retorna uma lista com os nomes dos atributos (campos) do objeto `ArticleMedia``."""
-        return list(ArticleMedia('', -1, '', '').__dict__)[:]
+        return list(ArticleMedia(-1, -1, -1, '', '').__dict__)[:]
 
     def __str__(self):
         list_str = [f'{self.__class__.__name__}']
@@ -170,7 +139,8 @@ class ArticleMedia(ModelEntity):
 
 class ArticleHyperlink(ModelEntity):
 
-    def __init__(self, aid: str, order: int, description: str, href: str):
+    def __init__(self, hid:int, aid: int, order: int, description: str, href: str):
+        self.hyperlink_id = hid
         self.article_id = aid
         self.link_order = order
         self.link_description = description
@@ -186,13 +156,14 @@ class ArticleHyperlink(ModelEntity):
             values[0],
             values[1],
             values[2],
-            values[3]
+            values[3],
+            values[4]
         )
 
     @staticmethod
     def attr_list():
         """Retorna uma lista com os nomes dos atributos (campos) do objeto `ArticleHyperlink``."""
-        return list(ArticleHyperlink('', -1, '', '').__dict__)[:]
+        return list(ArticleHyperlink(-1, -1, -1, '', '').__dict__)[:]
 
     def __str__(self):
         list_str = [f'{self.__class__.__name__}']
@@ -203,7 +174,8 @@ class ArticleHyperlink(ModelEntity):
 
 class ArticleCategory(ModelEntity):
 
-    def __init__(self, aid: str, desc: str, href: str):
+    def __init__(self, cid: int, aid: int, desc: str, href: str):
+        self.cid = cid
         self.article_id = aid
         self.description = desc
         self.href = href
@@ -217,13 +189,14 @@ class ArticleCategory(ModelEntity):
         return ArticleCategory(
             values[0],
             values[1],
-            values[2]
+            values[2],
+            values[3]
         )
 
     @staticmethod
     def attr_list():
         """Retorna uma lista com os nomes dos atributos (campos) do objeto `ArticleCategory``."""
-        return list(ArticleCategory('', '', '').__dict__)[:]
+        return list(ArticleCategory(-1, -1, '', '').__dict__)[:]
 
     def __str__(self):
         list_str = [f'{self.__class__.__name__}']
@@ -235,6 +208,7 @@ class ArticleCategory(ModelEntity):
 class ArticleParser:
 
     ARTICLE_ID_PROPERTY = 'article_id'
+    ARTICLE_CODE_PROPERTY = 'article_code'
     ARTICLE_SITENAME_PROPERTY = 'og:site_name'
     ARTICLE_PUBLISHED_PROPERTY = 'article:published_time'
     ARTICLE_AUTHOR_PROPERTY = 'article:author'
@@ -249,6 +223,7 @@ class ArticleParser:
     def parse_article(cls, article_metadata: Dict):
         return Article(
             article_metadata.get(ArticleParser.ARTICLE_ID_PROPERTY, None),
+            article_metadata.get(ArticleParser.ARTICLE_CODE_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_SITENAME_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_PUBLISHED_PROPERTY, None),
             article_metadata.get(ArticleParser.ARTICLE_AUTHOR_PROPERTY, None),

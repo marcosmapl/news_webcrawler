@@ -7,7 +7,8 @@ import os
 
 from psycopg2 import extras
 
-from model import Article, ArticleImage, ArticleTopic, ArticleMedia, ArticleHyperlink, ArticleCategory
+from logs import Logger
+from model import Article, ArticleTopic, ArticleMedia, ArticleHyperlink, ArticleCategory
 
 
 class DatabaseManager:
@@ -66,6 +67,7 @@ class DatabaseManager:
         """
         if not DatabaseManager.__connection or DatabaseManager.__connection.closed:
             DatabaseManager.__connection = psycopg2.connect(**DatabaseManager.__get_connection_params(sgbd_name))
+            DatabaseManager.__connection.autocommit = True
         return DatabaseManager.__connection
 
     @classmethod
@@ -80,6 +82,7 @@ class DatabaseManager:
         """
         if DatabaseManager.__connection and not DatabaseManager.__connection.closed:
             DatabaseManager.__connection.close()
+        DatabaseManager.__connection = None
 
     @classmethod
     def create_database(cls, sgbd_name: str):
@@ -125,17 +128,23 @@ class ModelController:
         :param attr_list: Uma lista com os nomes dos respectivos atributos (campos da tabela) cujos valores estão no registro.
         :return:
         """
-        # constroi o comando SQL para inserção do registro na tabela
-        fields = ', '.join(attr_list)
-        params = ', '.join(['%s' for _ in attr_list])
-        query = f"INSERT INTO {table_name} ({fields}) VALUES ({params})"
-        # recupera a conexão com o sgbd
+        row_count = 0
         connection = DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB)
-        cursor = connection.cursor()
-        # executa o comando SQL
-        cursor.execute(query, row)
-        connection.commit()
-        return cursor.rowcount
+        try:
+            # constroi o comando SQL para inserção do registro na tabela
+            fields = ', '.join(attr_list[1:])
+            params = ', '.join(['%s' for _ in attr_list[1:]])
+            query = f"INSERT INTO {table_name} ({fields}) VALUES ({params})"
+            # recupera a conexão com o sgbd
+            cursor = connection.cursor()
+            # executa o comando SQL
+            cursor.execute(query, row[1:])
+            connection.commit()
+            row_count = cursor.rowcount
+        except Exception as error:
+            connection.rollback()
+            Logger.error(str(error))
+        return row_count > 0
 
     @classmethod
     def _insert_many(cls, rows, table_name: str, attr_list):
@@ -147,16 +156,22 @@ class ModelController:
         :param attr_list: Uma lista com os nomes dos respectivos atributos (campos da tabela) cujos valores estão no registro.
         :return:
         """
-        # constroi o comando SQL para inserção do registro na tabela
-        attr_names = ','.join(attr_list)
-        sql_query = f'INSERT INTO {table_name} ({attr_names}) VALUES %s'
-        # recupera a conexão com o sgbd
+        row_count = 0
         connection = DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB)
-        cursor = connection.cursor()
-        # executa o comando SQL
-        extras.execute_values(cursor, sql_query, rows)
-        connection.commit()
-        return cursor.rowcount
+        try:
+            # constroi o comando SQL para inserção do registro na tabela
+            attr_names = ','.join(attr_list[1:])
+            sql_query = f'INSERT INTO {table_name} ({attr_names}) VALUES %s'
+            # recupera a conexão com o sgbd
+            cursor = connection.cursor()
+            # executa o comando SQL
+            extras.execute_values(cursor, sql_query, rows)
+            connection.commit()
+            row_count = cursor.rowcount
+        except Exception as error:
+            connection.rollback()
+            Logger.error(str(error))
+        return row_count > 0
 
     @classmethod
     def _fetch_all(cls, table_name: str):
@@ -187,11 +202,12 @@ class ModelController:
         if limit:
             params.append(limit)
         connection = DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB)
-        rows = connection.query(
+        cursor = connection.cursor()
+        cursor.execute(
             f'SELECT * FROM {table_name} WHERE {field_name} {"LIKE %s" if not exact else "= %s"}{"" if not limit else " LIMIT %s"}',
             tuple(params)
         )
-        return rows
+        return cursor.fetchall()
 
     @classmethod
     def _fetch_by_numerical_field(cls, table_name: str, field_value: int, field_name: str, limit=None):
@@ -207,10 +223,13 @@ class ModelController:
         params = [field_value]
         if limit:
             params.append(limit)
-        return DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB).query(
+        connection = DatabaseManager.get_connection(DatabaseManager.POSTGRESQL_DB)
+        cursor = connection.cursor()
+        cursor.execute(
             f'SELECT * FROM {table_name}{f" WHERE {field_name}=%s"}{"" if not limit else " LIMIT %s"}',
             tuple(params)
         )
+        return cursor.fetchall()
 
 
 class ArticleController(ModelController):
@@ -270,67 +289,6 @@ class ArticleController(ModelController):
         :param field_name: O nome do campo a ser utilizado na busca.
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `Article`
-        """
-        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
-
-
-class ArticleImageController(ModelController):
-    """Classe que implementa as funções de CRUD para objetos `ArticleImage`."""
-    __TABLE_NAME = 'article_image'
-
-    @classmethod
-    def insert_one(cls, element: ArticleImage):
-        """
-        Esta função insere um novo registro na tabela `article_image` com o valores provenientes de um objeto `ArticleImage`.
-
-        :param element: O objeto `ArticleImage` cujos valores deverão ser inseridos.
-        :return: Um inteiro maior que `zero` se registro foi inserido com sucesso.
-        """
-        return ModelController._insert_one(element.to_tuple(), cls.__TABLE_NAME, ArticleImage.attr_list())
-
-    @classmethod
-    def insert_batch(cls, elements: List[ArticleImage]):
-        """
-        Esta função insere novos registros na tabela `article_image` com os valores provenientes de uma lista de objetos `ArticleImage`.
-
-        :param elements: A lista com os objetos `ArticleImage` cujos valores deverão ser inseridos como novos registros da tabela.
-        :return: Um inteiro maior que `zero` se registros foram inseridos com sucesso.
-        """
-        return ModelController._insert_many([x.to_tuple() for x in elements], cls.__TABLE_NAME, ArticleImage.attr_list())
-
-    @classmethod
-    def fetch_all(cls):
-        """
-        Esta função recupera todos os registros da tabela `article_image` mapeados para uma lista de objetos `ArticleImage`.
-
-        :return: Uma lista contendo os registros da tabela, mapeados para objetos `ArticleImage`.
-        """
-        return [ArticleImage.from_tuple(x) for x in ModelController._fetch_all(cls.__TABLE_NAME)]
-
-    @classmethod
-    def fetch_by_text_field(cls, field_value: str, field_name: str, exact=True, limit=None):
-        """
-        Esta função recupera uma seleção de registros da tabela `article_image` por meio de uma busca por um parametro textual num dos campos da tabela.
-        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleImage`.
-
-        :param field_value: O valor textual do campos no registros desejados.
-        :param field_name: O nome do campo a ser utilizado na busca.
-        :param exact: Booleano que indica se a busca textual deve ser exata ou não.
-        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
-        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleImage`
-        """
-        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
-
-    @classmethod
-    def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
-        """
-        Esta função recupera uma seleção de registros da tabela `article_image` por meio de uma busca por um parametro inteiro num dos campos da tabela.
-        Os registros que satisfizerem o critério de busca serão mapeados e retornados numa lista de objetos `ArticleImage`.
-
-        :param field_value: O valor inteiro do campos no registros desejados.
-        :param field_name: O nome do campo a ser utilizado na busca.
-        :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
-        :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleImage`
         """
         return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
 
@@ -462,7 +420,7 @@ class ArticleHyperlinkController(ModelController):
     __TABLE_NAME = 'article_hyperlink'
 
     @classmethod
-    def insert_one(cls, element: ArticleMedia):
+    def insert_one(cls, element: ArticleHyperlink):
         """
         Esta função insere um novo registro na tabela `article_hyperlink` com o valores provenientes de um objeto `ArticleHyperlink`.
 
