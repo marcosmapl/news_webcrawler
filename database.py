@@ -25,11 +25,11 @@ class DatabaseManager:
 
     POSTGRESQL_DB = 'postgres'
     DATABASE_NAME = 'news_scraper'
-    __db_config_filename = 'database.ini' # nome do arquivo de configurações da conexão com o sgbd
-    __connection = None # objeto singleton de conexão com o sgbd
+    __db_config_filename = 'database.ini'
+    __connection = None
 
     @classmethod
-    def __get_connection_params(cls, sgbd_name: str):
+    def __load_connection_params(cls, sgbd_name: str):
         """
         Esta função carrega os parametros de conexão do arquivo de configurações e coloca-os num dicionário.
 
@@ -40,18 +40,15 @@ class DatabaseManager:
             FileNotFoundError: Caso o arquivo de configurações não seja encontrado na pasta atual.
             Exception: Caso a seção para o SGBD escolhido não sejam encontradas no arquivo de configurações.
         """
-        # verifica se o arquivo de configurações existe
         if os.path.exists(DatabaseManager.__db_config_filename):
-            # criar um objeto parser e carrega o arquivo de configurações
             parser = ConfigParser()
             parser.read(DatabaseManager.__db_config_filename)
-            # se a seção escolhida (sgbd) estiver presente no arquivo, carrega os parametros para um dicionário
             if parser.has_section(sgbd_name):
                 params = parser.items(sgbd_name)
                 db = dict(params)
                 return db
             else:
-                raise Exception(f'Section {sgbd_name} not found in the {DatabaseManager.__db_config_filename} file')
+                raise Exception(f'Seção de configurações "{sgbd_name}" não encontrada no arquivo {DatabaseManager.__db_config_filename}')
         else:
             raise FileNotFoundError(f'O arquivo {DatabaseManager.__db_config_filename} de configurações para o sgbd {sgbd_name} não foi encontrado!')
 
@@ -66,7 +63,7 @@ class DatabaseManager:
             sgbd_name (str): Nome do SGDB a ser utilizado (POSTGRESQL_DB | MYSQL_DB).
         """
         if not DatabaseManager.__connection or DatabaseManager.__connection.closed:
-            DatabaseManager.__connection = psycopg2.connect(**DatabaseManager.__get_connection_params(sgbd_name))
+            DatabaseManager.__connection = psycopg2.connect(**DatabaseManager.__load_connection_params(sgbd_name))
             DatabaseManager.__connection.autocommit = True
         return DatabaseManager.__connection
 
@@ -94,7 +91,7 @@ class DatabaseManager:
         Args:
             sgbd_name (str): Nome do SGDB a ser utilizado (POSTGRESQL_DB | MYSQL_DB).
         """
-        db_params = DatabaseManager.__get_connection_params(sgbd_name)
+        db_params = DatabaseManager.__load_connection_params(sgbd_name)
         db_params['database'] = sgbd_name
         conn = psycopg2.connect(**db_params)
         conn.autocommit = True
@@ -110,9 +107,29 @@ class DatabaseManager:
             conn = DatabaseManager.get_connection(sgbd_name)
             cursor = conn.cursor()
             cursor.execute(sql)
-            cursor.close()
             conn.commit()
             conn.close()
+
+    @classmethod
+    def check_connection(cls, sgbd_name: str):
+        try:
+            db_params = DatabaseManager.__load_connection_params(sgbd_name)
+            db_params['database'] = sgbd_name
+            conn = psycopg2.connect(**db_params)
+            conn.autocommit = True
+            cursor = conn.cursor()
+            cursor.execute("SELECT VERSION()")
+            results = cursor.fetchone()
+            conn.close()
+            if results:
+                return True
+            else:
+                err = Exception('NÃO FOI POSSÍVEL RECUPERAR A VERSÃO DO BANCO DE DADOS')
+                Logger.error(str(err))
+                raise err
+        except Exception as err:
+            Logger.error(str(err))
+            raise err
 
 
 class ModelController:
@@ -338,7 +355,8 @@ class ArticleTopicController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleTopic`
         """
-        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        rows = ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        return [ArticleTopic.from_tuple(x) for x in rows]
 
     @classmethod
     def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
@@ -351,7 +369,8 @@ class ArticleTopicController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleTopic`
         """
-        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        rows = ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        return [ArticleTopic.from_tuple(x) for x in rows]
 
 
 class ArticleMediaController(ModelController):
@@ -399,7 +418,8 @@ class ArticleMediaController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleMedia`
         """
-        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        rows = ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        return [ArticleMedia.from_tuple(x) for x in rows]
 
     @classmethod
     def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
@@ -412,7 +432,8 @@ class ArticleMediaController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleMedia`
         """
-        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        rows = ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        return [ArticleMedia.from_tuple(x) for x in rows]
 
 
 class ArticleHyperlinkController(ModelController):
@@ -460,7 +481,8 @@ class ArticleHyperlinkController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleHyperlink`
         """
-        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        rows = ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        return [ArticleHyperlink.from_tuple(x) for x in rows]
 
     @classmethod
     def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
@@ -473,7 +495,8 @@ class ArticleHyperlinkController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleHyperlink`
         """
-        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        rows = ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        return [ArticleHyperlink.from_tuple(x) for x in rows]
 
 
 class ArticleCategoryController(ModelController):
@@ -521,8 +544,8 @@ class ArticleCategoryController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleCategory`
         """
-        return ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
-
+        rows = ModelController._fetch_by_text_field(cls.__TABLE_NAME, field_value, field_name, exact, limit)
+        return [ArticleCategory.from_tuple(x) for x in rows]
     @classmethod
     def fetch_by_numerical_field(cls, field_value: int, field_name: str, limit=None):
         """
@@ -534,4 +557,5 @@ class ArticleCategoryController(ModelController):
         :param limit: Inteiro que especifica o número máximo (limite) de registros a serem retornados, caso seja "None" todos os registros encontrados serão retornados.
         :return: Os registros, que satisfizerem o critério de buscar, mapeados num lista de objetos `ArticleCategory`
         """
-        return ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        rows = ModelController._fetch_by_numerical_field(cls.__TABLE_NAME, field_value, field_name, limit)
+        return [ArticleCategory.from_tuple(x) for x in rows]
