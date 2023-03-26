@@ -31,7 +31,7 @@ class NewsScraperGUI(Tk):
         self.frame_keywords.place(x=15, y=15)
 
         # search keywords
-        self.label_keywords = ttk.Label(self.frame_keywords, text='TERMOS', style=NewsScraperDefaultTheme.TLABEL_STYLE_NAME)
+        self.label_keywords = ttk.Label(self.frame_keywords, text='TERMOS DE BUSCA', style=NewsScraperDefaultTheme.TLABEL_STYLE_NAME)
         self.label_keywords.place(x=25, y=25)
         self.svar_keywords = tk.StringVar()
         self.entry_keywords = ttk.Entry(self.frame_keywords, style=NewsScraperDefaultTheme.TENTRY_STYLE_NAME, textvariable=self.svar_keywords, width=120)
@@ -73,6 +73,7 @@ class NewsScraperGUI(Tk):
         )
         self.check3.place(x=510, y=220)
 
+        # TODO add save html to pdf option
         # save options
         self.save_options = (tk.IntVar(), tk.IntVar(), tk.IntVar())
         self.label_save = ttk.Label(self.frame_keywords, text='SALVAR', style=NewsScraperDefaultTheme.TLABEL_STYLE_NAME)
@@ -95,6 +96,8 @@ class NewsScraperGUI(Tk):
             offvalue=False
         )
         self.check_txt.place(x=750, y=180)
+
+        # TODO separate into a new column called 'GERAR', add option 'planilha'
         self.check_database = ttk.Checkbutton(
             self.frame_keywords,
             text='BANCO DE DADOS',
@@ -126,6 +129,7 @@ class NewsScraperGUI(Tk):
         )
         self.dt_entry_from.place(x=25, y=145)
 
+        # TODO place it under dt_entry_start
         self.label_to = ttk.Label(
             self.frame_keywords,
             text='DATA FINAL',
@@ -185,8 +189,8 @@ class NewsScraperGUI(Tk):
 
         save_opt = [bool(x.get()) for x in self.save_options]
         scrapers = [
-            AcriticaScraper(3, from_timestamp, to_timestamp, save_opt[0], save_opt[1], save_opt[2]),
-            PortalAmazoniaScraper(3, from_timestamp, to_timestamp, save_opt[0], save_opt[1], save_opt[2]),
+            AcriticaScraper(5, from_timestamp, to_timestamp, save_opt[0], save_opt[1], save_opt[2]),
+            PortalAmazoniaScraper(5, from_timestamp, to_timestamp, save_opt[0], save_opt[1], save_opt[2]),
             G1Scraper(5, from_timestamp, to_timestamp, save_opt[0], save_opt[1], save_opt[2])
         ]
         for scraper, use in zip(scrapers, [x.get() for x in self.use_scraper]):

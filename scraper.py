@@ -37,6 +37,7 @@ class WebScraper:
         pass
 
     def start(self, search_terms: List[str]):
+        Logger.info(f"[{self.get_scrapper_name()}]: STARTED")
         op = webdriver.ChromeOptions()
         # op.add_argument('headless')
         browser = webdriver.Chrome(ChromeDriverManager().install(), options=op)
@@ -52,7 +53,7 @@ class WebScraper:
             except Exception as err:
                 Logger.error(str(err))
 
-        Logger.info(f"[{self.get_scrapper_name()}]: ENCERRANDO O WEBDRIVER")
+        Logger.info(f"[{self.get_scrapper_name()}]: FINISHED")
         browser.get(r'https://www.google.com.br')
         browser.close()
         browser.quit()
@@ -70,11 +71,12 @@ class WebScraper:
         return self._LOAD_WAITING_TIME
 
     def _get_article_metadata(self, soup):
+        Logger.info(f"\tGETTING ARTICLE METADATA")
         return {meta['property']: str(meta['content']).upper().strip() for meta in
                 soup.findAll('meta', {'property': True})}
 
     def _get_article_topics(self, soup, article_url: str):
-        Logger.info(f"[{self.get_scrapper_name()}]: OBTENDO TOPICOS DO DOCUMENTO {article_url}")
+        Logger.info(f"\tGETTING ARTICLE TOPICS")
         topics = []
         if soup:
             for order, link in enumerate(soup, start=1):
@@ -89,7 +91,7 @@ class WebScraper:
         return topics
 
     def _get_article_hyperlinks(self, soup, article_url: str):
-        Logger.info(f"[{self.get_scrapper_name()}]: OBTENDO HYPERLINKS DO DOCUMENTO {article_url}")
+        Logger.info(f"\tGETTING ARTICLE HYPERLINKS")
         hyperlinks = []
         if soup:
             for order, link in enumerate(soup, start=1):
@@ -104,7 +106,7 @@ class WebScraper:
         return hyperlinks
 
     def _get_article_categories(self, soup, article_url: str):
-        Logger.info(f"[{self.get_scrapper_name()}]: OBTENDO CATEGORIAS DO DOCUMENTO {article_url}")
+        Logger.info(f"\tGETTING ARTICLE CATEGORIES")
         categories = []
         if soup:
             for order, link in enumerate(soup, start=1):
@@ -118,7 +120,7 @@ class WebScraper:
         return categories
 
     def _get_document_medias(self, soup, article_url: str):
-        Logger.info(f"[{self.get_scrapper_name()}]: OBTENDO MIDIAS DO DOCUMENTO {article_url}")
+        Logger.info(f"\tGETTING ARTICLE MEDIAS")
         medias = []
         for media_tag in ['video', 'audio', 'img']:
             for order, tag in enumerate(soup.findChildren(media_tag, {'src': True}), start=1):
@@ -159,71 +161,87 @@ class WebScraper:
 
 class AcriticaScraper(WebScraper):
 
+    DIV_ARTICLE_BLOCK_CLASS = 'eOExTH'
+    DIV_ARTICLE_SECTION_CLASS = 'eaVrfa'
+    SPAN_HAT_CLASS = 'fCwtAq'
+    DIV_META_CLASS = 'Block__Component-sc-1uj1scg-0 fTFJxo article_style acritica'
+
     def __init__(self, load_wait: int, from_timestamp: float, to_timestamp: float, save_html: bool, save_txt: bool, save_db: bool):
         WebScraper.__init__(self, load_wait, from_timestamp, to_timestamp, save_html, save_txt, save_db)
         self._BASE_URL = r'https://www.acritica.com'
         self._NAME = 'AcriticaScraper'
 
     def _get_document_links(self, browser, search_term: str):
+        Logger.info(f'GETTING ARTICLES FOR SEARCH TERM="{search_term}" ')
         document_links = set()
-        Logger.info(f'[{self.get_scrapper_name()}]: OBTENDO DOCUMENTOS COM O TERMO "{search_term}" ')
-
         page_number = 1
         browser.get(f'{self.get_base_url()}/page/{page_number}/{search_term}')
         sleep(self.get_load_waiting_time())
         soup = BeautifulSoup(browser.page_source, 'html.parser')
-        div_article_list = soup.find('div', {'class': 'bwIhbp'})
-        links = div_article_list.findChildren('a', {'class': 'dDfqGJ', 'href': True})
+        div_article_list = soup.find('div', {'class': AcriticaScraper.DIV_ARTICLE_BLOCK_CLASS})
+        links = div_article_list.findChildren('a', {'class': AcriticaScraper.DIV_ARTICLE_SECTION_CLASS, 'href': True})
 
         while links:
             for link in links:
-                document_links.add(link['href'])
+                article_url = link['href']
+                document_links.add(article_url)
+                Logger.info(f'\tARTICLE FOUND: {article_url}')
             page_number += 1
             browser.get(f'{self.get_base_url()}/page/{page_number}/{search_term}')
             sleep(self.get_load_waiting_time())
             soup = BeautifulSoup(browser.page_source, 'html.parser')
-            div_article_list = soup.find('div', {'class': 'bwIhbp'})
-            links = div_article_list.findChildren('a', {'class': 'dDfqGJ', 'href': True})
+            div_article_list = soup.find('div', {'class': AcriticaScraper.DIV_ARTICLE_BLOCK_CLASS})
+            links = div_article_list.findChildren('a', {'class': AcriticaScraper.DIV_ARTICLE_SECTION_CLASS, 'href': True})
 
         return document_links
 
     def _get_article_metadata(self, soup):
+        Logger.info(f"\tGETTING ARTICLE METADATA")
         article_metadata = WebScraper._get_article_metadata(self, soup)
-        hat_span = soup.find('span', {'class': 'ceiOww'})
+        hat_span = soup.find('span', {'class': AcriticaScraper.SPAN_HAT_CLASS})
         article_metadata[ArticleParser.ARTICLE_HAT_PROPERTY] = hat_span.text.upper().strip() if hat_span else None
 
-        div_content = soup.find('div', class_='Block__Component-sc-1uj1scg-0 bkZMmC article_style acritica')
+        div_content = soup.find('div', class_=AcriticaScraper.DIV_META_CLASS)
         article_metadata['content'] = div_content.text.upper()
 
         return article_metadata
 
     def _get_document(self, browser, page_url: str):
         document_url = f'{self.get_base_url()}{page_url}'
-        browser.get(page_url)
+        Logger.info(f"DOWNLOADING ARTICLE: {document_url}")
+        browser.get(document_url)
         sleep(self.get_load_waiting_time())
         soup = BeautifulSoup(browser.page_source, 'html.parser')
 
         article_metadata = self._get_article_metadata(soup)
         article = ArticleParser.parse_article(article_metadata)
 
-        if not self._FROM_TIMESTAMP < datetime.strptime(article.published, '%Y-%m-%d %H:%M:%s').timestamp() < self._TO_TIMESTAMP:
+        if not self._FROM_TIMESTAMP < datetime.strptime(article.published, '%Y-%m-%d %H:%M:%S').timestamp() < self._TO_TIMESTAMP:
+            Logger.warn(f"\tARTICLE DATETIME IS OUT OF SEARCH INTERVAL")
             return
 
+        article_filename = ''.join([x.upper() for x in article.title if x.isalnum() or x.isspace()])
+        article_filename = article_filename.replace(' ', '_')
         if self._SAVE_HTML:
-            AcriticaScraper._save_html(
+            Logger.info(f"\tSAVING ARTICLE HTML")
+            AcriticaScraper._save_to_file(
                 self,
-                page_url,
+                os.path.join(os.getcwd(), 'html'),
+                f'{article_filename}.html',
                 soup.prettify()
             )
 
         if self._SAVE_TXT:
-            AcriticaScraper._save_txt(
+            Logger.info(f"\tSAVING ARTICLE CONTENT TO TXT FILE")
+            AcriticaScraper._save_to_file(
                 self,
-                document_url,
+                os.path.join(os.getcwd(), 'txt'),
+                f'{article_filename}.txt',
                 re.sub(r"\s+", " ", ''.join(article_metadata['content']).upper())
             )
 
         if self._SAVE_DB:
+            Logger.info(f"\tSAVING ARTICLE INTO DATABASE")
             ArticleController.insert_one(article)
             article_row = ArticleController.fetch_by_text_field(article.article_url, 'article_url')
             article = Article.from_tuple(article_row[0])
@@ -234,6 +252,7 @@ class AcriticaScraper(WebScraper):
                 div_content.findChildren('a', {'class': 'knlcwJ', 'href': True}),
                 article.article_id
             )
+            Logger.info(f"\t\ttSAVING ARTICLE TOPICS INTO DATABASE")
             for topic in topics:
                 ArticleTopicController.insert_one(topic)
 
@@ -242,18 +261,22 @@ class AcriticaScraper(WebScraper):
                 div_content.findChildren('a', {'href': True}),
                 article.article_id
             )
+            Logger.info(f"\t\tSAVING ARTICLE HYPERLINKS INTO DATABASE")
             for hyperlink in hyperlinks:
                 ArticleHyperlinkController.insert_one(hyperlink)
 
             categories = self._get_article_categories(soup, article.article_id)
+            Logger.info(f"\t\tSAVING ARTICLE CATEGORIES INTO DATABASE")
             for category in categories:
                 ArticleCategoryController.insert_one(category)
 
             medias = WebScraper._get_document_medias(self, div_content, article.article_id)
+            Logger.info(f"\t\tSAVING ARTICLE MEDIAS INTO DATABASE")
             for media in medias:
                 ArticleMediaController.insert_one(media)
 
     def _get_article_categories(self, soup, article_url: str):
+        Logger.info(f"\tGETTING ARTICLE CATEGORIES")
         meta_url = soup.find('meta', {'property': 'og:url', 'content': True})
         document_url = meta_url['content']
         document_url = document_url.replace(self.get_base_url(), '')
