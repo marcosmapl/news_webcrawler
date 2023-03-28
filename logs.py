@@ -15,7 +15,7 @@ class Logger:
         if not os.path.exists(Logger.__path):
             os.mkdir(Logger.__path)
 
-        formatter = logging.Formatter('%(asctime)s [%(levelname)s]:[%(name)s]:\n\t%(message)s')
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] [%(name)s]:\n\t%(message)s')
         data_hoje = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if not Logger.__news_logger:
