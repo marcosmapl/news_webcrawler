@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS article
 (
     article_id varchar(40) PRIMARY KEY NOT NULL,
-    article_url text NOT NULL,
+    article_url text UNIQUE NOT NULL,
     site_name text NOT NULL,
     published timestamp,
     author text,
